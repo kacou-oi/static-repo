@@ -304,14 +304,18 @@
                     body: JSON.stringify(payload)
                 });
                 
-                // Vérifier que la réponse est bien du JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
+                // Lire la réponse même si elle est en erreur
+                let result;
+                try {
+                    result = await response.json();
+                } catch (e) {
+                    // Si la réponse n'est pas du JSON, lire le texte
                     const text = await response.text();
-                    throw new Error(`Le serveur a retourné une réponse non-JSON. Vérifiez que l'URL du Worker Maître est correcte. Status: ${response.status}`);
+                    throw new Error(`Réponse invalide du serveur (${response.status}): ${text}`);
                 }
                 
-                const result = await response.json();
+                console.log('Response status:', response.status);
+                console.log('Response data:', result);
                 
                 if (response.ok && result.success) {
                     // Sauvegarder les informations
@@ -325,18 +329,30 @@
                     document.getElementById('result-worker-url').textContent = result.workerUrl;
                     document.getElementById('result-frontend-url').textContent = result.frontendUrl || githubPagesUrl;
                 } else {
-                    // Construire un message d'erreur détaillé
-                    let errorMessage = result.error || result.message || 'Erreur inconnue lors de l\'installation';
-                    if (!response.ok) {
-                        errorMessage = `[${response.status}] ${errorMessage}`;
-                    }
-                    throw new Error(errorMessage);
+                    // Afficher l'erreur avec tous les détails
+                    const errorMsg = result.error || result.message || 'Erreur inconnue lors de l\'installation';
+                    const errorDetails = result.details ? JSON.stringify(result.details, null, 2) : '';
+                    const errorDebug = result.debug ? JSON.stringify(result.debug, null, 2) : '';
+                    
+                    console.error('Installation error:', {
+                        error: errorMsg,
+                        details: errorDetails,
+                        debug: errorDebug,
+                        fullResponse: result
+                    });
+                    
+                    throw new Error(`${errorMsg}${errorDetails ? '\n\nDétails: ' + errorDetails : ''}${errorDebug ? '\n\nDebug: ' + errorDebug : ''}`);
                 }
             } catch (error) {
+                console.error('Installation failed:', error);
                 document.getElementById('install-form').classList.add('hidden');
                 document.getElementById('install-result').classList.remove('hidden');
                 document.getElementById('error-message').classList.remove('hidden');
-                document.getElementById('error-details').textContent = error.message;
+                
+                // Afficher l'erreur complète
+                const errorText = error.message || error.toString();
+                document.getElementById('error-details').textContent = errorText;
+                document.getElementById('error-details').style.whiteSpace = 'pre-wrap'; // Permet les retours à la ligne
             } finally {
                 btn.disabled = false;
                 btnText.classList.remove('hidden');
