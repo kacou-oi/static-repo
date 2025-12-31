@@ -191,7 +191,7 @@
     </div>
     
     <script>
-        const MAITRE_URL = 'installer.websuite.cc'; // À configurer avec l'URL réelle du Worker Maître
+        const MAITRE_URL = 'https://installer.websuite.cc'; // À configurer avec l'URL réelle du Worker Maître
         
         // Détecter automatiquement GitHub username et repo depuis l'URL
         function detectGitHubInfo() {
@@ -303,6 +303,13 @@
                     },
                     body: JSON.stringify(payload)
                 });
+                
+                // Vérifier que la réponse est bien du JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Le serveur a retourné une réponse non-JSON. Vérifiez que l'URL du Worker Maître est correcte. Status: ${response.status}`);
+                }
                 
                 const result = await response.json();
                 
