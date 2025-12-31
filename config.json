@@ -1,14 +1,14 @@
 {
-  "backendUrl": "",
-  "siteName": "",
-  "author": "",
-  "blogRssUrl": "",
+  "backendUrl": "https://kacou-oi-websuite-worker.stackpages.workers.dev",
+  "siteName": "Site de Demo",
+  "author": "Master",
+  "blogRssUrl": "https://kacouoi.substack.com/feed",
   "youtubeRssUrl": "",
   "podcastFeedUrl": "",
   "eventsRssUrl": "",
   "seo": {
-    "metaTitle": "",
-    "metaDescription": "",
-    "metaKeywords": ""
+    "metaTitle": "Site demo Websuite",
+    "metaDescription": "Site demo Websuite",
+    "metaKeywords": "websuite, cms, headless, mcp, headless"
   }
 }
