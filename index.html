@@ -325,7 +325,12 @@
                     document.getElementById('result-worker-url').textContent = result.workerUrl;
                     document.getElementById('result-frontend-url').textContent = result.frontendUrl || githubPagesUrl;
                 } else {
-                    throw new Error(result.error || 'Erreur inconnue lors de l\'installation');
+                    // Construire un message d'erreur détaillé
+                    let errorMessage = result.error || result.message || 'Erreur inconnue lors de l\'installation';
+                    if (!response.ok) {
+                        errorMessage = `[${response.status}] ${errorMessage}`;
+                    }
+                    throw new Error(errorMessage);
                 }
             } catch (error) {
                 document.getElementById('install-form').classList.add('hidden');
