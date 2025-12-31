@@ -284,15 +284,34 @@
             const githubPagesUrl = window.location.origin;
             const githubPagesDomain = window.location.hostname;
             
+            // IMPORTANT: Le Worker Maître doit utiliser github_pat pour mettre à jour config.json
+            // via l'API GitHub (PUT /repos/{owner}/{repo}/contents/config.json)
+            // Le PAT doit avoir les permissions: repo (write access)
             const payload = {
                 admin_email: document.getElementById('admin_email').value,
                 admin_password: document.getElementById('admin_password').value,
-                github_pat: document.getElementById('github_pat').value,
+                github_pat: document.getElementById('github_pat').value, // Utilisé pour mettre à jour config.json via GitHub API
                 github_username: document.getElementById('github_username').value,
                 github_repo: document.getElementById('github_repo').value,
                 custom_domain: document.getElementById('custom_domain').value || null,
                 github_pages_url: githubPagesUrl,
-                github_pages_domain: githubPagesDomain
+                github_pages_domain: githubPagesDomain,
+                // Configuration à enregistrer dans config.json
+                // Le Worker Maître doit utiliser github_pat pour faire un PUT sur config.json
+                config: {
+                    backendUrl: '', // Sera rempli par le Worker Maître avec result.workerUrl
+                    siteName: document.getElementById('site_name')?.value.trim() || '',
+                    author: document.getElementById('author')?.value.trim() || '',
+                    blogRssUrl: document.getElementById('blog_rss_url')?.value.trim() || '',
+                    youtubeRssUrl: document.getElementById('youtube_rss_url')?.value.trim() || '',
+                    podcastFeedUrl: document.getElementById('podcast_rss_url')?.value.trim() || '',
+                    eventsRssUrl: document.getElementById('events_rss_url')?.value.trim() || '',
+                    seo: {
+                        metaTitle: document.getElementById('meta_title')?.value.trim() || '',
+                        metaDescription: document.getElementById('meta_description')?.value.trim() || '',
+                        metaKeywords: document.getElementById('meta_keywords')?.value.trim() || ''
+                    }
+                }
             };
             
             try {

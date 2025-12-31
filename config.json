@@ -1,0 +1,17 @@
+{
+  "backendUrl": "",
+  "siteName": "",
+  "author": "",
+  "blogRssUrl": "",
+  "youtubeRssUrl": "",
+  "frontendBuilderUrl": "",
+  "podcastFeedUrl": "",
+  "eventsRssUrl": "",
+  "wstdStagingUrl": "",
+  "analyticsEmbedUrl": "",
+  "seo": {
+    "metaTitle": "",
+    "metaDescription": "",
+    "metaKeywords": ""
+  }
+}
