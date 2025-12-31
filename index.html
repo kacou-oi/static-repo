@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSuite Platform - Installation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">WebSuite Platform</h1>
+            <p class="text-gray-600">Installation et configuration</p>
+        </div>
+        
+        <!-- Vérification installation existante -->
+        <div id="check-installation" class="hidden mb-6">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center mb-2">
+                    <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-green-800 font-semibold">Installation déjà effectuée</p>
+                </div>
+                <p class="text-sm text-green-700">Worker URL: <span id="worker-url" class="font-mono text-xs"></span></p>
+                <a href="/admin" class="inline-block mt-3 text-sm text-green-700 hover:text-green-900 underline">Accéder au Dashboard</a>
+            </div>
+        </div>
+        
+        <!-- Formulaire d'installation -->
+        <form id="install-form" class="space-y-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-blue-800">
+                    <strong>Prérequis:</strong> Vous devez avoir un GitHub Personal Access Token avec les permissions: <code class="bg-blue-100 px-1 rounded">repo</code>, <code class="bg-blue-100 px-1 rounded">workflow</code>, <code class="bg-blue-100 px-1 rounded">write:packages</code>
+                </p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Administrateur <span class="text-red-500">*</span>
+                </label>
+                <input 
+                    type="email" 
+                    id="admin_email" 
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="admin@example.com"
+                >
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Mot de passe Administrateur <span class="text-red-500">*</span>
+                </label>
+                <input 
+                    type="password" 
+                    id="admin_password" 
+                    required
+                    minlength="12"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Minimum 12 caractères"
+                >
+                <p class="text-xs text-gray-500 mt-1">Minimum 12 caractères recommandé</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    GitHub Personal Access Token <span class="text-red-500">*</span>
+                </label>
+                <input 
+                    type="password" 
+                    id="github_pat" 
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="ghp_xxxxxxxxxxxx"
+                >
+                <p class="text-xs text-gray-500 mt-1">
+                    Créer un token: <a href="https://github.com/settings/tokens" target="_blank" class="text-purple-600 hover:underline">github.com/settings/tokens</a>
+                </p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    GitHub Username <span class="text-red-500">*</span>
+                    <span id="github_username_auto" class="hidden text-xs text-green-600 ml-2">
+                        <i class="fas fa-check-circle"></i> Détecté automatiquement
+                    </span>
+                </label>
+                <input 
+                    type="text" 
+                    id="github_username" 
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                    placeholder="votre-username"
+                >
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Nom du Repository GitHub <span class="text-red-500">*</span>
+                    <span id="github_repo_auto" class="hidden text-xs text-green-600 ml-2">
+                        <i class="fas fa-check-circle"></i> Détecté automatiquement
+                    </span>
+                </label>
+                <input 
+                    type="text" 
+                    id="github_repo" 
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                    placeholder="mon-projet-websuite"
+                >
+                <p class="text-xs text-gray-500 mt-1">Le repository où est déployé ce site GitHub Pages</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Domaine personnalisé (optionnel)
+                </label>
+                <input 
+                    type="text" 
+                    id="custom_domain" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="example.com"
+                >
+                <p class="text-xs text-gray-500 mt-1">Si vous avez configuré un domaine personnalisé pour GitHub Pages</p>
+            </div>
+            
+            <button 
+                type="submit" 
+                id="install-btn"
+                class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+                <span id="install-btn-text">Installer WebSuite Platform</span>
+                <span id="install-btn-loading" class="hidden">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Installation en cours...
+                </span>
+            </button>
+        </form>
+        
+        <!-- Résultat -->
+        <div id="install-result" class="hidden mt-6">
+            <div id="success-message" class="hidden bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center mb-3">
+                    <svg class="w-6 h-6 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <h3 class="text-green-800 font-semibold text-lg">Installation réussie !</h3>
+                </div>
+                <p class="text-sm text-green-700 mb-4">Votre plateforme WebSuite est maintenant prête à être utilisée.</p>
+                <div class="space-y-2 text-sm bg-green-100 rounded p-3 mb-4">
+                    <p><strong class="text-green-900">Worker URL:</strong> <span id="result-worker-url" class="font-mono text-xs text-green-800 break-all"></span></p>
+                    <p><strong class="text-green-900">Frontend URL:</strong> <span id="result-frontend-url" class="font-mono text-xs text-green-800 break-all"></span></p>
+                </div>
+                <div class="flex gap-3">
+                    <a 
+                        href="/admin" 
+                        class="inline-block bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                        Accéder au Dashboard
+                    </a>
+                    <a 
+                        href="/" 
+                        class="inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                        Voir le Frontend
+                    </a>
+                </div>
+            </div>
+            
+            <div id="error-message" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-center mb-2">
+                    <svg class="w-6 h-6 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <h3 class="text-red-800 font-semibold">Erreur lors de l'installation</h3>
+                </div>
+                <p class="text-sm text-red-700" id="error-details"></p>
+                <button 
+                    onclick="document.getElementById('install-result').classList.add('hidden'); document.getElementById('install-form').classList.remove('hidden');"
+                    class="mt-3 text-sm text-red-700 hover:text-red-900 underline"
+                >
+                    Réessayer
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const MAITRE_URL = 'installer.websuite.cc'; // À configurer avec l'URL réelle du Worker Maître
+        
+        // Détecter automatiquement GitHub username et repo depuis l'URL
+        function detectGitHubInfo() {
+            const hostname = window.location.hostname;
+            const pathname = window.location.pathname;
+            
+            let githubUsername = '';
+            let githubRepo = '';
+            
+            // Pattern 1: username.github.io
+            if (hostname.endsWith('.github.io')) {
+                githubUsername = hostname.replace('.github.io', '');
+                
+                // Extraire le repo depuis le pathname
+                const pathParts = pathname.split('/').filter(p => p && p !== 'index.html');
+                
+                if (pathParts.length > 0) {
+                    // Cas: username.github.io/repo-name → repo = repo-name
+                    githubRepo = pathParts[0];
+                } else {
+                    // Cas: username.github.io/ → repo = username.github.io (repo principal)
+                    githubRepo = githubUsername + '.github.io';
+                }
+            }
+            // Pattern 2: Custom domain
+            // On ne peut pas détecter automatiquement, l'utilisateur doit remplir
+            
+            return { githubUsername, githubRepo };
+        }
+        
+        // Pré-remplir les champs GitHub
+        function prefillGitHubFields() {
+            const { githubUsername, githubRepo } = detectGitHubInfo();
+            
+            if (githubUsername) {
+                const usernameInput = document.getElementById('github_username');
+                const usernameAuto = document.getElementById('github_username_auto');
+                if (usernameInput) {
+                    usernameInput.value = githubUsername;
+                    // Ajouter un indicateur visuel que c'est détecté automatiquement
+                    usernameInput.classList.add('bg-green-50', 'border-green-300');
+                    usernameInput.title = 'Détecté automatiquement depuis l\'URL GitHub Pages';
+                    if (usernameAuto) {
+                        usernameAuto.classList.remove('hidden');
+                    }
+                }
+            }
+            
+            if (githubRepo) {
+                const repoInput = document.getElementById('github_repo');
+                const repoAuto = document.getElementById('github_repo_auto');
+                if (repoInput) {
+                    repoInput.value = githubRepo;
+                    // Ajouter un indicateur visuel que c'est détecté automatiquement
+                    repoInput.classList.add('bg-green-50', 'border-green-300');
+                    repoInput.title = 'Détecté automatiquement depuis l\'URL GitHub Pages';
+                    if (repoAuto) {
+                        repoAuto.classList.remove('hidden');
+                    }
+                }
+            }
+        }
+        
+        // Vérifier si déjà installé
+        async function checkInstallation() {
+            const workerUrl = localStorage.getItem('websuite_worker_url');
+            if (workerUrl) {
+                document.getElementById('check-installation').classList.remove('hidden');
+                document.getElementById('worker-url').textContent = workerUrl;
+                document.getElementById('install-form').classList.add('hidden');
+                
+                // Configurer l'URL de base pour les appels API
+                localStorage.setItem('api_base_url', workerUrl);
+            }
+        }
+        
+        // Formulaire d'installation
+        document.getElementById('install-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('install-btn');
+            const btnText = document.getElementById('install-btn-text');
+            const btnLoading = document.getElementById('install-btn-loading');
+            
+            btn.disabled = true;
+            btnText.classList.add('hidden');
+            btnLoading.classList.remove('hidden');
+            
+            // Détecter l'URL GitHub Pages automatiquement
+            const githubPagesUrl = window.location.origin;
+            const githubPagesDomain = window.location.hostname;
+            
+            const payload = {
+                admin_email: document.getElementById('admin_email').value,
+                admin_password: document.getElementById('admin_password').value,
+                github_pat: document.getElementById('github_pat').value,
+                github_username: document.getElementById('github_username').value,
+                github_repo: document.getElementById('github_repo').value,
+                custom_domain: document.getElementById('custom_domain').value || null,
+                github_pages_url: githubPagesUrl,
+                github_pages_domain: githubPagesDomain
+            };
+            
+            try {
+                const response = await fetch(`${MAITRE_URL}/setup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // Sauvegarder les informations
+                    localStorage.setItem('websuite_worker_url', result.workerUrl);
+                    localStorage.setItem('api_base_url', result.workerUrl);
+                    
+                    // Afficher le succès
+                    document.getElementById('install-form').classList.add('hidden');
+                    document.getElementById('install-result').classList.remove('hidden');
+                    document.getElementById('success-message').classList.remove('hidden');
+                    document.getElementById('result-worker-url').textContent = result.workerUrl;
+                    document.getElementById('result-frontend-url').textContent = result.frontendUrl || githubPagesUrl;
+                } else {
+                    throw new Error(result.error || 'Erreur inconnue lors de l\'installation');
+                }
+            } catch (error) {
+                document.getElementById('install-form').classList.add('hidden');
+                document.getElementById('install-result').classList.remove('hidden');
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('error-details').textContent = error.message;
+            } finally {
+                btn.disabled = false;
+                btnText.classList.remove('hidden');
+                btnLoading.classList.add('hidden');
+            }
+        });
+        
+        // Vérifier au chargement
+        checkInstallation();
+        
+        // Pré-remplir les champs GitHub
+        prefillGitHubFields();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDE - Pages Frame IDE - StackPages CMS</title>
+    <link rel="icon" type="image/x-icon" href="https://stackpages.net/img/logo.png">
+    <!-- Tailwind CSS v3 -->
+    <script src="/static/js/tailwindcss.js"></script>
+    <!-- Monaco Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+    <link href="/static/fonts/inter.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/all.min.css">
+    <!-- Prism.js for Code Highlighting -->
+    <link rel="stylesheet" href="/static/css/prism-tomorrow.min.css">
+    <script src="/static/js/prism/prism.min.js"></script>
+    <script src="/static/js/prism/prism-markup.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Monaco Editor container */
+        #monaco-editor-container {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased bg-[#1e1e1e]">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg border-b border-slate-700">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center gap-4">
+                <a href="/admin/dashboard.html" class="text-slate-400 hover:text-orange-500 transition"
+                    title="Retour au dashboard">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-white"> WebSuite IDE</h1>
+                    <p class="text-sm text-slate-400" id="page-status">Nouvelle page</p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher -->
+            <div class="flex-1 flex justify-center">
+                <div class="bg-slate-700 rounded-lg p-1 flex gap-1">
+                    <button onclick="switchMode('htmx')" id="mode-htmx-btn"
+                        class="px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 bg-purple-600 text-white shadow-lg">
+                        <i class="fas fa-code"></i>
+                        Mode HTMX
+                    </button>
+                    <button onclick="switchMode('agent')" id="mode-agent-btn"
+                        class="px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-600">
+                        <i class="fas fa-robot"></i>
+                        Mode Agents
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3" id="header-actions">
+                <!-- HTMX Mode Actions -->
+                <div id="htmx-actions" class="flex items-center gap-3">
+                <button onclick="previewPageNewTab()"
+                    class="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition flex items-center gap-2">
+                    <i class="fas fa-external-link-alt"></i> Prévisualiser
+                </button>
+                <button onclick="savePage('published')"
+                    class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white rounded-lg font-medium transition shadow-lg flex items-center gap-2">
+                    <i class="fas fa-save"></i> Sauvegarder
+                </button>
+                <button onclick="deployFrontend()" id="btn-deploy-frontend"
+                    class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white rounded-lg font-medium transition shadow-lg flex items-center gap-2">
+                    <i class="fas fa-rocket"></i> Déployer
+                </button>
+                </div>
+                <!-- Agent Mode Actions -->
+                <div id="agent-actions" class="hidden flex items-center gap-3">
+                    <button onclick="testAgent()"
+                        class="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition flex items-center gap-2">
+                        <i class="fas fa-play"></i> Tester
+                    </button>
+                    <button onclick="saveAgent()"
+                        class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white rounded-lg font-medium transition shadow-lg flex items-center gap-2">
+                        <i class="fas fa-save"></i> Sauvegarder
+                    </button>
+                    <button onclick="deployAgent()" id="btn-deploy-agent"
+                        class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-lg font-medium transition shadow-lg flex items-center gap-2">
+                        <i class="fas fa-rocket"></i> Déployer
+                    </button>
+                </div>
+            </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="flex" style="height: calc(100vh - 73px);">
+        <!-- Left Panel - Settings -->
+        <div class="w-80 bg-[#252526] border-r border-slate-700 overflow-y-auto flex-shrink-0">
+            <!-- HTMX Mode Settings -->
+            <div id="htmx-settings" class="p-6">
+                <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fas fa-cog text-orange-400"></i>
+                    Paramètres de la Page
+                </h2>
+
+                <form id="page-creator-form" class="space-y-4">
+                    <!-- Title -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Titre de la Page <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" id="page-title" required placeholder="Ex: À propos de nous"
+                            class="w-full px-3 py-2 bg-[#1e1e1e] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+
+                    <!-- Slug -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Slug URL
+                        </label>
+                        <input type="text" id="page-slug" readonly placeholder="a-propos-de-nous"
+                            class="w-full px-3 py-2 bg-[#333333] border border-slate-600 rounded-lg text-slate-400 cursor-not-allowed">
+                        <p class="text-xs text-slate-500 mt-1">Généré automatiquement</p>
+                    </div>
+
+                    <!-- Meta Description -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Meta Description
+                        </label>
+                        <textarea id="page-meta-desc" rows="3"
+                            placeholder="Description courte pour les moteurs de recherche..."
+                            class="w-full px-3 py-2 bg-[#1e1e1e] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition resize-none"></textarea>
+                    </div>
+
+                    <!-- Meta Keywords -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Meta Keywords
+                        </label>
+                        <input type="text" id="page-meta-keywords" placeholder="mot-clé1, mot-clé2, mot-clé3"
+                            class="w-full px-3 py-2 bg-[#1e1e1e] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+
+                    <!-- Thumbnail -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Image Thumbnail (URL)
+                        </label>
+                        <input type="url" id="page-thumbnail" placeholder="https://example.com/image.jpg"
+                            class="w-full px-3 py-2 bg-[#1e1e1e] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700">
+                        <!-- Reset Button -->
+                        <button type="button" onclick="clearPageForm()"
+                            class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition flex items-center justify-center gap-2">
+                            <i class="fas fa-redo"></i> Réinitialiser le formulaire
+                        </button>
+                    </div>
+
+                    <div id="page-save-status" class="text-sm"></div>
+                </form>
+            </div>
+            
+            <!-- Agent Mode Settings -->
+            <div id="agent-settings" class="hidden p-6">
+                <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fas fa-robot text-emerald-400"></i>
+                    Paramètres de l'Agent
+                </h2>
+
+                <form id="agent-creator-form" class="space-y-4">
+                    <!-- Agent ID -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            ID de l'Agent <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" id="agent-id" required placeholder="ex: mon-premier-agent"
+                            class="w-full px-3 py-2 bg-[#1e1e1e] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono"
+                            pattern="[a-z0-9-]+"
+                            title="Utilisez uniquement des minuscules, chiffres et tirets">
+                        <p class="text-xs text-slate-500 mt-1">En minuscules, sans espaces (sera le nom du fichier)</p>
+                    </div>
+
+                    <!-- Agent Description -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Description
+                        </label>
+                        <textarea id="agent-description" rows="3"
+                            placeholder="Décrivez ce que fait cet agent..."
+                            class="w-full px-3 py-2 bg-[#1e1e1e] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition resize-none"></textarea>
+                    </div>
+
+                    <!-- Agent Template -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Template
+                        </label>
+                        <button type="button" onclick="loadAgentTemplate()"
+                            class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition flex items-center justify-center gap-2">
+                            <i class="fas fa-code"></i> Charger le template
+                        </button>
+                        <p class="text-xs text-slate-500 mt-2">Utilisez le template comme point de départ</p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700">
+                        <button type="button" onclick="clearAgentForm()"
+                            class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition flex items-center justify-center gap-2">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </button>
+                    </div>
+
+                    <div id="agent-save-status" class="text-sm"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Panel - Code Editor -->
+        <div class="flex-1 flex flex-col bg-[#1e1e1e]">
+            <!-- Code Editor Header -->
+            <div class="px-6 py-4 border-b border-slate-700 bg-[#252526] flex justify-between items-center">
+                <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                    <i id="editor-icon" class="fas fa-code text-orange-500"></i>
+                    <span id="editor-title">Éditeur HTML</span>
+                </h3>
+
+                <!-- Gemini Branding -->
+                <div class="flex items-center gap-3 bg-[#1e1e1e] px-4 py-1.5 rounded-full border border-slate-700">
+                    <img src="https://img.icons8.com/fluency/48/gemini-ai.png" alt="Gemini" class="w-5 h-5">
+                    <span class="font-bold text-slate-200 text-sm">Powered by Google Gemini</span>
+                    <button onclick="openGeminiConfig()" class="ml-2 text-slate-400 hover:text-white transition"
+                        title="Configurer l'API Gemini">
+                        <i class="fas fa-cog text-lg hover:rotate-90 transition-transform duration-500"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span id="html-char-count" class="text-xs text-slate-400 mr-2">0 caractères</span>
+                    <button onclick="openPromptModal()"
+                        class="px-3 py-1.5 bg-[#333333] border border-slate-600 rounded-md text-sm text-slate-200 hover:bg-[#444444] transition flex items-center gap-2">
+                        <i class="fas fa-magic"></i> Prompt
+                    </button>
+                </div>
+            </div>
+            <!-- Monaco Editor -->
+            <div class="flex-1 bg-[#1e2a3a] overflow-hidden">
+                <div id="monaco-editor-container"></div>
+            </div>
+
+            <div class="px-6 py-3 border-t border-slate-700 bg-[#252526] flex items-center justify-between">
+                <span class="text-xs text-slate-400">
+                    <i class="fas fa-keyboard text-orange-400 mr-1"></i>
+                    Monaco Editor - Coloration syntaxique automatique
+                </span>
+                <div class="flex items-center gap-4">
+                    <span id="page-status-badge" class="text-xs px-2 py-1 rounded bg-slate-700 text-slate-300">
+                        <i class="fas fa-circle text-green-500 mr-1" style="font-size: 6px;"></i>
+                        Prêt
+                    </span>
+                    <span id="html-char-count" class="text-xs text-slate-500">0 caractères</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Preview -->
+    <div id="preview-modal"
+        class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="modal-title" class="font-bold text-lg text-slate-800 truncate pr-4">Aperçu de la page</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="p-8 overflow-y-auto prose prose-orange max-w-none">
+                <!-- Content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Modal -->
+    <div id="prompt-modal"
+        class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="bg-[#1e1e1e] rounded-xl shadow-2xl w-full max-w-2xl border border-slate-700 transform transition-all scale-100 flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-[#252526] rounded-t-xl">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-magic text-purple-400"></i>
+                    Générer avec Gemini
+                </h3>
+                <button onclick="closePromptModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6 flex-1 overflow-y-auto">
+                <div class="mb-4">
+                    <label id="prompt-label" class="block text-sm font-medium text-slate-300 mb-2">
+                        Décrivez la page ou le composant que vous souhaitez créer
+                    </label>
+                    <textarea id="gemini-prompt-input" rows="6"
+                        placeholder="Ex: Crée une landing page moderne pour un café avec une section héro, une galerie de photos et un formulaire de contact. Utilise des couleurs chaudes."
+                        class="w-full px-4 py-3 bg-[#252526] border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none text-base"></textarea>
+                </div>
+
+                <div id="generation-error"
+                    class="hidden mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="generation-error-msg">Une erreur est survenue.</span>
+                </div>
+
+                <div class="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-2">
+                    <p class="text-sm text-blue-200 flex items-start gap-2">
+                        <i class="fas fa-info-circle mt-0.5"></i>
+                        <span>Le code généré remplacera le contenu actuel de l'éditeur. Assurez-vous d'avoir sauvegardé
+                            votre travail si nécessaire.</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-slate-700 bg-[#252526] rounded-b-xl flex justify-end gap-3">
+                <button onclick="closePromptModal()"
+                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition">
+                    Annuler
+                </button>
+                <button onclick="generateCode()" id="generate-btn"
+                    class="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg font-bold transition shadow-lg shadow-purple-500/20 flex items-center gap-2">
+                    <span id="generate-btn-text">Générer le code</span>
+                    <i id="generate-btn-icon" class="fas fa-wand-magic-sparkles"></i>
+                    <i id="generate-loading" class="fas fa-circle-notch fa-spin hidden"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gemini Config Modal -->
+    <div id="gemini-modal"
+        class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="bg-[#1e1e1e] rounded-xl shadow-2xl w-full max-w-md border border-slate-700 transform transition-all scale-100">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <img src="https://img.icons8.com/fluency/48/gemini-ai.png" alt="Gemini" class="w-6 h-6">
+                        Configuration Gemini
+                    </h3>
+                    <button onclick="closeGeminiConfig()" class="text-slate-400 hover:text-white transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Clé API Gemini</label>
+                        <div class="relative">
+                            <input type="password" id="gemini-api-key" placeholder="Collez votre clé API ici..."
+                                class="w-full pl-10 pr-4 py-2.5 bg-[#252526] border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition placeholder-slate-500">
+                            <i class="fas fa-key absolute left-3 top-3 text-slate-500"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#252526] rounded-lg p-4 border border-slate-700">
+                        <p class="text-sm text-slate-300 mb-2 font-medium">Comment obtenir une clé :</p>
+                        <ol class="list-decimal list-inside space-y-1.5 text-sm text-slate-400 ml-1">
+                            <li>Allez sur <a href="https://makersuite.google.com/app/apikey" target="_blank"
+                                    class="text-blue-400 hover:text-blue-300 hover:underline">Google AI Studio</a></li>
+                            <li>Créez une clé API gratuite</li>
+                            <li>Copiez et collez-la ci-dessus</li>
+                        </ol>
+                    </div>
+
+                    <div class="pt-1">
+                        <a href="https://www.youtube.com/watch?v=example" target="_blank"
+                            class="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium group">
+                            <div
+                                class="w-6 h-6 bg-red-500/10 rounded-full flex items-center justify-center group-hover:bg-red-500/20 transition">
+                                <i class="fab fa-youtube"></i>
+                            </div>
+                            VIDEO TUTO : Comment configurer Gemini
+                        </a>
+                    </div>
+
+                    <button onclick="saveGeminiConfig()"
+                        class="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg font-bold transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i>
+                        Sauvegarder la configuration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Monaco Editor instance
+        let monacoEditor = null;
+        window.monacoEditor = null;
+        
+        // L'authentification est gérée par core/admin.js qui est chargé à la fin du fichier
+
+        // Initialize Monaco Editor
+        // Global mode variable
+        let currentMode = 'htmx'; // 'htmx' or 'agent'
+
+        // Switch between HTMX and Agent modes
+        function switchMode(mode) {
+            if (mode === currentMode) return;
+            
+            // Ask confirmation if editor has content
+            if (monacoEditor && monacoEditor.getValue().trim()) {
+                if (!confirm('Changer de mode va effacer le contenu actuel. Continuer ?')) {
+                    return;
+                }
+            }
+            
+            currentMode = mode;
+            
+            // Update switcher buttons
+            const htmxBtn = document.getElementById('mode-htmx-btn');
+            const agentBtn = document.getElementById('mode-agent-btn');
+            const htmxActions = document.getElementById('htmx-actions');
+            const agentActions = document.getElementById('agent-actions');
+            const htmxSettings = document.getElementById('htmx-settings');
+            const agentSettings = document.getElementById('agent-settings');
+            const editorIcon = document.getElementById('editor-icon');
+            const editorTitle = document.getElementById('editor-title');
+            
+            if (mode === 'htmx') {
+                htmxBtn.className = 'px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 bg-purple-600 text-white shadow-lg';
+                agentBtn.className = 'px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-600';
+                htmxActions.classList.remove('hidden');
+                agentActions.classList.add('hidden');
+                htmxSettings.classList.remove('hidden');
+                agentSettings.classList.add('hidden');
+                editorIcon.className = 'fas fa-code text-orange-500';
+                editorTitle.textContent = 'Éditeur HTML';
+                
+                // Change Monaco language to HTML
+                if (monacoEditor) {
+                    monaco.editor.setModelLanguage(monacoEditor.getModel(), 'html');
+                }
+            } else {
+                htmxBtn.className = 'px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-600';
+                agentBtn.className = 'px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 bg-emerald-600 text-white shadow-lg';
+                htmxActions.classList.add('hidden');
+                agentActions.classList.remove('hidden');
+                htmxSettings.classList.add('hidden');
+                agentSettings.classList.remove('hidden');
+                editorIcon.className = 'fas fa-robot text-emerald-500';
+                editorTitle.textContent = 'Éditeur JavaScript';
+                
+                // Change Monaco language to JavaScript
+                if (monacoEditor) {
+                    monaco.editor.setModelLanguage(monacoEditor.getModel(), 'javascript');
+                }
+            }
+            
+            // Clear editor when switching modes
+            if (monacoEditor) {
+                monacoEditor.setValue('');
+            }
+        }
+
+        // Agent Functions
+        function loadAgentTemplate() {
+            const template = `/**
+ * Agent Description
+ * Route: /api/agents/[id]/execute (POST ou GET)
+ * 
+ */
+
+import { jsonResponse, errorResponse } from '../../../shared/utils.js';
+
+/**
+ * Exécute l'agent (POST)
+ */
+export async function onRequestPost(context) {
+  return handleAgent(context);
+}
+
+/**
+ * Exécute l'agent (GET)
+ */
+export async function onRequestGet(context) {
+  return handleAgent(context);
+}
+
+async function handleAgent(context) {
+  const { env } = context;
+  
+  try {
+    // Votre logique ici
+    // Accès exclusif aux variables d'environnement via env
+    
+    const result = {
+      success: true,
+      message: "Agent exécuté avec succès",
+      timestamp: new Date().toISOString()
+    };
+    
+    return jsonResponse(result);
+  } catch (error) {
+    return errorResponse(\`Erreur: \${error.message}\`, 500);
+  }
+}`;
+            
+            if (monacoEditor) {
+                monacoEditor.setValue(template);
+            }
+            
+            // Auto-fill agent ID if empty
+            const agentIdInput = document.getElementById('agent-id');
+            if (agentIdInput && !agentIdInput.value) {
+                agentIdInput.value = 'mon-agent-' + Date.now().toString().slice(-6);
+            }
+        }
+
+        function clearAgentForm() {
+            document.getElementById('agent-id').value = '';
+            document.getElementById('agent-description').value = '';
+            if (monacoEditor) {
+                monacoEditor.setValue('');
+            }
+        }
+
+        async function saveAgent() {
+            const agentId = document.getElementById('agent-id')?.value.trim();
+            const description = document.getElementById('agent-description')?.value.trim();
+            const code = monacoEditor ? monacoEditor.getValue().trim() : '';
+
+            if (!agentId) {
+                alert('Veuillez entrer un ID pour l\'agent');
+                return;
+            }
+
+            if (!code) {
+                alert('Le code de l\'agent ne peut pas être vide');
+                return;
+            }
+
+            // Valider le format de l'ID
+            if (!/^[a-z0-9-]+$/.test(agentId)) {
+                alert('L\'ID doit contenir uniquement des minuscules, chiffres et tirets');
+                return;
+            }
+
+            // Valider que le code exporte bien des endpoints API
+            if (!code.includes('onRequestPost') && !code.includes('onRequestGet')) {
+                if (!confirm('Le code ne semble pas exporter onRequestPost ou onRequestGet. Voulez-vous continuer quand même ?')) {
+                    return;
+                }
+            }
+
+            try {
+                // Sauvegarder en cache (comme HTMX preview)
+                const response = await fetch('/api/agents/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Key': getAuthToken()
+                    },
+                    body: JSON.stringify({
+                        agentId,
+                        code,
+                        description
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Agent sauvegardé en cache !\n\nID: ' + agentId + '\n\nVous pouvez maintenant le tester ou le déployer vers GitHub.');
+                    document.getElementById('page-status').textContent = `Agent: ${agentId}`;
+                    
+                    // Mettre à jour le statut badge
+                    const statusBadge = document.getElementById('page-status-badge');
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<i class="fas fa-circle text-orange-500 mr-1" style="font-size: 6px;"></i> En cache';
+                        statusBadge.className = 'text-xs px-2 py-1 rounded bg-orange-900 text-orange-300';
+                    }
+                } else {
+                    throw new Error(result.error || 'Erreur lors de la sauvegarde');
+                }
+            } catch (error) {
+                console.error('Save agent error:', error);
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        async function deployAgent() {
+            const agentId = document.getElementById('agent-id')?.value.trim();
+            const description = document.getElementById('agent-description')?.value.trim();
+            const code = monacoEditor ? monacoEditor.getValue().trim() : '';
+
+            if (!agentId) {
+                alert('Veuillez d\'abord sauvegarder l\'agent avec un ID');
+                return;
+            }
+
+            if (!code) {
+                alert('Le code de l\'agent ne peut pas être vide');
+                return;
+            }
+
+            if (!confirm(`Voulez-vous déployer l'agent "${agentId}" vers GitHub ?\n\nCela sauvegardera le fichier dans functions/agents/${agentId}.js`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/agents/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Key': getAuthToken()
+                    },
+                    body: JSON.stringify({
+                        agentId,
+                        code,
+                        description
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Agent déployé avec succès sur GitHub !\n\nID: ' + agentId);
+                    
+                    // Mettre à jour le statut badge
+                    const statusBadge = document.getElementById('page-status-badge');
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<i class="fas fa-circle text-green-500 mr-1" style="font-size: 6px;"></i> Déployé';
+                        statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-300';
+                    }
+                } else {
+                    throw new Error(result.error || 'Erreur lors du déploiement');
+                }
+            } catch (error) {
+                console.error('Deploy agent error:', error);
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        async function testAgent() {
+            const agentId = document.getElementById('agent-id')?.value.trim();
+            const agentCode = monacoEditor ? monacoEditor.getValue().trim() : '';
+            const agentDescription = document.getElementById('agent-description')?.value.trim() || '';
+            
+            if (!agentId) {
+                alert('Veuillez d\'abord sauvegarder l\'agent avec un ID');
+                return;
+            }
+
+            if (!agentCode) {
+                alert('Le code de l\'agent est vide');
+                return;
+            }
+
+            if (!confirm(`Voulez-vous tester l'agent "${agentId}" ?`)) {
+                return;
+            }
+
+            try {
+                // Étape 1: Sauvegarder l'agent en cache pour qu'il soit disponible pour l'exécution
+                console.log('[testAgent] Saving agent to cache first...');
+                const saveResponse = await fetch('/api/agents/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Key': getAuthToken()
+                    },
+                    body: JSON.stringify({
+                        agentId: agentId,
+                        code: agentCode,
+                        description: agentDescription
+                    })
+                });
+
+                const saveResult = await saveResponse.json();
+                if (!saveResponse.ok) {
+                    throw new Error(saveResult.error || 'Erreur lors de la sauvegarde en cache');
+                }
+
+                console.log('[testAgent] Agent saved to cache, executing...');
+
+                // Étape 2: Exécuter l'agent
+                const response = await fetch(`/api/agents/${agentId}/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Auth-Key': getAuthToken()
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(`Agent exécuté avec succès !\n\nTemps: ${result.executionTime}ms\n\nRésultat:\n${JSON.stringify(result.result, null, 2)}`);
+                } else {
+                    throw new Error(result.error || 'Erreur lors de l\'exécution');
+                }
+            } catch (error) {
+                console.error('Test agent error:', error);
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        async function loadAgent(agentId) {
+            try {
+                // Essayer d'abord de charger depuis le cache (comme HTMX)
+                let response = await fetch(`/api/agents/preview?id=${encodeURIComponent(agentId)}`, {
+                    headers: {
+                        'X-Auth-Key': getAuthToken()
+                    }
+                });
+
+                let result = await response.json();
+                let code = null;
+
+                if (response.ok && result.data) {
+                    // Chargé depuis le cache
+                    code = result.data.code;
+                    if (result.data.description) {
+                        document.getElementById('agent-description').value = result.data.description;
+                    }
+                } else {
+                    // Fallback: charger depuis GitHub
+                    response = await fetch(`/api/agents/load?id=${encodeURIComponent(agentId)}`, {
+                        headers: {
+                            'X-Auth-Key': getAuthToken()
+                        }
+                    });
+
+                    result = await response.json();
+
+                    if (response.ok) {
+                        code = result.code;
+                    } else {
+                        throw new Error(result.error || 'Erreur lors du chargement');
+                    }
+                }
+
+                document.getElementById('agent-id').value = agentId;
+                if (monacoEditor) {
+                    monacoEditor.setValue(code);
+                }
+                document.getElementById('page-status').textContent = `Agent: ${agentId}`;
+                switchMode('agent');
+            } catch (error) {
+                console.error('Load agent error:', error);
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        function initMonacoEditor(initialValue = '', language = 'html') {
+            require.config({
+                paths: {
+                    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'
+                }
+            });
+
+            require(['vs/editor/editor.main'], function () {
+                monacoEditor = monaco.editor.create(document.getElementById('monaco-editor-container'), {
+                    value: initialValue,
+                    language: language,
+                    theme: 'vs-dark',
+                    automaticLayout: true,
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: 'on',
+                    tabSize: 2,
+                    insertSpaces: true,
+                    formatOnPaste: true,
+                    formatOnType: true,
+                    suggest: {
+                        snippetsPreventQuickSuggestions: false
+                    },
+                    // Increase limit for long lines (e.g. base64)
+                    maxTokenizationLineLength: 20000
+                });
+
+                // Make globally accessible
+                window.monacoEditor = monacoEditor;
+
+                // Update character count on content change
+                monacoEditor.onDidChangeModelContent(() => {
+                    updateCharacterCount();
+                    updateStatusBadge();
+                });
+
+                // Initial character count
+                updateCharacterCount();
+            });
+        }
+
+        // Update character count
+        function updateCharacterCount() {
+            if (monacoEditor) {
+                const charCount = document.getElementById('html-char-count');
+                const content = monacoEditor.getValue();
+                if (charCount) {
+                    charCount.textContent = `${content.length} caractères`;
+                }
+            }
+        }
+
+        // Update status badge
+        function updateStatusBadge() {
+            if (monacoEditor) {
+                const statusBadge = document.getElementById('page-status-badge');
+                const content = monacoEditor.getValue();
+                if (statusBadge && content.length > 0) {
+                    statusBadge.innerHTML = '<i class="fas fa-circle text-yellow-500 mr-1" style="font-size: 6px;"></i> Modifié';
+                    statusBadge.className = 'text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-300';
+                }
+            }
+        }
+
+        // Copy HTML code to clipboard
+        function copyHtmlCode() {
+            if (monacoEditor) {
+                const content = monacoEditor.getValue();
+                navigator.clipboard.writeText(content).then(() => {
+                    // Visual feedback
+                    const btn = event.target.closest('button');
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copié !';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Erreur lors de la copie:', err);
+                    alert('Erreur lors de la copie');
+                });
+            }
+        }
+
+        // Get auth token for API calls
+        function getAuthToken() {
+            // Priorité: websuite_auth (nouveau) puis stackpages_auth (ancien) pour compatibilité
+            return localStorage.getItem('websuite_auth') || localStorage.getItem('stackpages_auth') || localStorage.getItem('admin_token') || 'admin';
+        }
+
+        // Save page (draft or published) - Sauvegarde en cache pour prévisualisation
+        async function savePage(status = 'draft') {
+            const title = document.getElementById('page-title')?.value.trim();
+            const htmlContent = monacoEditor ? monacoEditor.getValue().trim() : '';
+            const metaDesc = document.getElementById('page-meta-desc')?.value.trim();
+            const metaKeywords = document.getElementById('page-meta-keywords')?.value.trim();
+            const thumbnail = document.getElementById('page-thumbnail')?.value.trim();
+
+            if (!title || !htmlContent) {
+                alert('Veuillez remplir au moins le titre et le contenu HTML');
+                return;
+            }
+
+            // Générer le slug si nécessaire
+            let slug = document.getElementById('page-slug')?.value.trim();
+            if (!slug) {
+                slug = title.toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/(^-|-$)/g, '');
+                document.getElementById('page-slug').value = slug;
+            }
+
+            // Construire le template complet frontend/index.html
+            // L'IDE édite le contenu complet du frontend
+            const fullTemplate = htmlContent;
+
+            try {
+                // Sauvegarder en cache pour prévisualisation
+                const response = await fetch('/api/frontend/template/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Key': getAuthToken()
+                    },
+                    body: JSON.stringify({
+                        html: fullTemplate,
+                        metadata: {
+                            title,
+                            slug,
+                            metaDesc,
+                            metaKeywords,
+                            thumbnail,
+                            status,
+                            savedAt: new Date().toISOString()
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Mettre à jour le statut
+                    document.getElementById('page-status').textContent = 
+                        status === 'draft' ? `Brouillon: ${title}` : `Publié: ${title}`;
+                    
+                    const statusBadge = document.getElementById('page-status-badge');
+                    if (statusBadge) {
+                        if (status === 'draft') {
+                            statusBadge.innerHTML = '<i class="fas fa-circle text-orange-500 mr-1" style="font-size: 6px;"></i> Brouillon';
+                            statusBadge.className = 'text-xs px-2 py-1 rounded bg-orange-900 text-orange-300';
+                        } else {
+                            statusBadge.innerHTML = '<i class="fas fa-circle text-green-500 mr-1" style="font-size: 6px;"></i> Sauvegardé';
+                            statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-300';
+                        }
+                    }
+
+                    // Sauvegarder aussi dans localStorage pour référence
+                    let pages = [];
+                    try {
+                        const stored = localStorage.getItem('stackpages_custom_pages');
+                        if (stored) pages = JSON.parse(stored);
+                    } catch (e) {
+                        console.error('Error loading pages:', e);
+                    }
+
+                    const pageIndex = pages.findIndex(p => p.slug === slug);
+                    const pageData = {
+                        title,
+                        slug,
+                        htmlContent: fullTemplate,
+                        metaDesc,
+                        metaKeywords,
+                        thumbnail,
+                        status,
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    if (pageIndex !== -1) {
+                        pages[pageIndex] = pageData;
+                    } else {
+                        pages.push(pageData);
+                    }
+
+                    localStorage.setItem('stackpages_custom_pages', JSON.stringify(pages));
+
+                    // Sauvegarder aussi pour la prévisualisation locale
+                    const PREVIEW_STORAGE_KEY = 'iziwebcms_preview_template';
+                    const previewData = {
+                        html: fullTemplate,
+                        metadata: {
+                            title,
+                            slug,
+                            metaDesc,
+                            metaKeywords,
+                            thumbnail,
+                            status,
+                            savedAt: new Date().toISOString()
+                        }
+                    };
+                    const previewStorageKey = `${PREVIEW_STORAGE_KEY}_${slug}`;
+                    localStorage.setItem(previewStorageKey, JSON.stringify(previewData));
+
+                    alert(status === 'draft' ? 'Brouillon sauvegardé en cache !' : 'Template sauvegardé en cache !');
+                } else {
+                    throw new Error(result.error || 'Erreur lors de la sauvegarde');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        // Open preview in new tab - Utilise le slug
+        async function previewPageNewTab() {
+            const htmlContent = monacoEditor ? monacoEditor.getValue().trim() : '';
+
+            if (!htmlContent) {
+                alert('Veuillez d\'abord sauvegarder le template (Brouillon)');
+                return;
+            }
+
+            // Récupérer le slug
+            let slug = document.getElementById('page-slug')?.value.trim();
+            if (!slug) {
+                const title = document.getElementById('page-title')?.value.trim();
+                if (!title) {
+                    alert('Veuillez définir un titre ou un slug pour la prévisualisation');
+                    return;
+                }
+                slug = title.toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/(^-|-$)/g, '');
+            }
+
+            // Sauvegarder d'abord en cache si pas déjà fait
+            await savePage('draft');
+
+            // Ouvrir la prévisualisation locale avec le slug
+            const previewUrl = `/preview?slug=${encodeURIComponent(slug)}`;
+            window.open(previewUrl, '_blank');
+        }
+
+        // Deploy to frontend/index.html
+        async function deployFrontend() {
+            if (!confirm("Voulez-vous déployer ce template vers frontend/index.html ?\n\nCela remplacera le template actuel.")) {
+                return;
+            }
+
+            const htmlContent = monacoEditor ? monacoEditor.getValue().trim() : '';
+
+            if (!htmlContent) {
+                alert('Le contenu est vide');
+                return;
+            }
+
+            const btn = document.getElementById('btn-publish-github') || document.querySelector('button[onclick*="deploy"]');
+            const originalContent = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Déploiement...';
+                btn.disabled = true;
+            }
+
+            try {
+                // Vérifier si GitHub est configuré via l'API (variables d'environnement)
+                let deployToGitHub = false;
+                try {
+                    const configResponse = await fetch('/api/config', {
+                        headers: {
+                            'X-Auth-Key': getAuthToken()
+                        }
+                    });
+                    if (configResponse.ok) {
+                        const config = await configResponse.json();
+                        deployToGitHub = config.hasGithub || false;
+                    }
+                } catch (e) {
+                    console.warn('Could not check GitHub config via API, falling back to localStorage:', e);
+                    // Fallback: vérifier localStorage (ancien système)
+                const ghConfig = JSON.parse(localStorage.getItem('stackpages_github_config') || '{}');
+                    deployToGitHub = !!(ghConfig.owner && ghConfig.repo && ghConfig.token);
+                }
+
+                const response = await fetch('/api/frontend/template/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Key': getAuthToken()
+                    },
+                    body: JSON.stringify({
+                        html: htmlContent,
+                        deployToGitHub: deployToGitHub
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(deployToGitHub 
+                        ? 'Template déployé avec succès sur GitHub !\nLe site sera mis à jour après le prochain déploiement Cloudflare Pages.'
+                        : 'Template sauvegardé !\nPour déployer en production, configurez GitHub dans les paramètres.');
+                } else {
+                    throw new Error(result.error || 'Erreur lors du déploiement');
+                }
+            } catch (error) {
+                console.error('Deploy error:', error);
+                alert(`Erreur: ${error.message}`);
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // Gemini Configuration Functions
+        function openGeminiConfig() {
+            const modal = document.getElementById('gemini-modal');
+            const apiKeyInput = document.getElementById('gemini-api-key');
+
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Load saved key
+                const savedKey = localStorage.getItem('stackpages_gemini_key');
+                if (savedKey && apiKeyInput) {
+                    apiKeyInput.value = savedKey;
+                }
+            }
+        }
+
+        function closeGeminiConfig() {
+            const modal = document.getElementById('gemini-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveGeminiConfig() {
+            const apiKeyInput = document.getElementById('gemini-api-key');
+            if (apiKeyInput) {
+                const key = apiKeyInput.value.trim();
+                if (key) {
+                    localStorage.setItem('stackpages_gemini_key', key);
+
+                    // Show success feedback
+                    const btn = document.querySelector('#gemini-modal button[onclick="saveGeminiConfig()"]');
+                    const originalContent = btn.innerHTML;
+
+                    btn.innerHTML = '<i class="fas fa-check"></i> Sauvegardé !';
+                    btn.classList.remove('from-blue-600', 'to-blue-500');
+                    btn.classList.add('from-green-600', 'to-green-500');
+
+                    setTimeout(() => {
+                        closeGeminiConfig();
+                        // Reset button style after closing
+                        setTimeout(() => {
+                            btn.innerHTML = originalContent;
+                            btn.classList.add('from-blue-600', 'to-blue-500');
+                            btn.classList.remove('from-green-600', 'to-green-500');
+                        }, 500);
+                    }, 1000);
+                } else {
+                    alert('Veuillez entrer une clé API valide');
+                }
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('gemini-modal')?.addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeGeminiConfig();
+            }
+        });
+
+        // Prompt Modal Functions
+        function openPromptModal() {
+            const modal = document.getElementById('prompt-modal');
+            const textarea = document.getElementById('gemini-prompt-input');
+            const label = document.getElementById('prompt-label');
+            const errorMsg = document.getElementById('generation-error');
+
+            if (modal) {
+                modal.classList.remove('hidden');
+                if (textarea) {
+                    textarea.value = '';
+                    // Update placeholder and label based on current mode
+                    if (currentMode === 'agent') {
+                        textarea.placeholder = "Ex: Crée un agent qui récupère les derniers articles du blog RSS et envoie un résumé par email. Utilise env.BLOG_RSS_URL et env.EMAIL_API_KEY.";
+                        if (label) label.textContent = "Décrivez la fonctionnalité de l'agent que vous souhaitez créer";
+                    } else {
+                        textarea.placeholder = "Ex: Crée une landing page moderne pour un café avec une section héro, une galerie de photos et un formulaire de contact. Utilise des couleurs chaudes.";
+                        if (label) label.textContent = "Décrivez la page ou le composant que vous souhaitez créer";
+                    }
+                    textarea.focus();
+                }
+                if (errorMsg) errorMsg.classList.add('hidden');
+            }
+        }
+
+        function closePromptModal() {
+            const modal = document.getElementById('prompt-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Close prompt modal when clicking outside
+        document.getElementById('prompt-modal')?.addEventListener('click', function (e) {
+            if (e.target === this) {
+                closePromptModal();
+            }
+        });
+
+        async function generateCode() {
+            const promptInput = document.getElementById('gemini-prompt-input');
+            const generateBtn = document.getElementById('generate-btn');
+            const btnText = document.getElementById('generate-btn-text');
+            const btnIcon = document.getElementById('generate-btn-icon');
+            const loadingIcon = document.getElementById('generate-loading');
+            const errorDiv = document.getElementById('generation-error');
+            const errorMsg = document.getElementById('generation-error-msg');
+
+            const prompt = promptInput?.value.trim();
+            const apiKey = localStorage.getItem('stackpages_gemini_key');
+
+            // Validation
+            if (!prompt) {
+                showError('Veuillez décrire ce que vous souhaitez générer.');
+                return;
+            }
+
+            if (!apiKey) {
+                showError('Clé API Gemini manquante. Veuillez la configurer via l\'icône d\'engrenage.');
+                return;
+            }
+
+            // UI Loading State
+            if (generateBtn) generateBtn.disabled = true;
+            if (btnText) btnText.textContent = 'Génération en cours...';
+            if (btnIcon) btnIcon.classList.add('hidden');
+            if (loadingIcon) loadingIcon.classList.remove('hidden');
+            if (errorDiv) errorDiv.classList.add('hidden');
+
+            try {
+                // Get current editor content
+                const currentCode = monacoEditor ? monacoEditor.getValue().trim() : '';
+                
+                // Récupérer la liste des variables d'environnement disponibles avec leurs descriptions
+                let availableEnvVars = [];
+                try {
+                    const envResponse = await fetch('/api/env-vars', {
+                        headers: { 'X-Auth-Key': getAuthToken() }
+                    });
+                    if (envResponse.ok) {
+                        const envData = await envResponse.json();
+                        availableEnvVars = envData.variables || [];
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch env vars:', e);
+                }
+                
+                // Determine system instruction based on current mode
+                let systemInstruction = "";
+                let codeLanguage = "";
+                let codeBlockType = "";
+                
+                if (currentMode === 'agent') {
+                    // Construire la section des variables d'environnement disponibles
+                    let envVarsSection = "\n**AVAILABLE ENVIRONMENT VARIABLES:**\n";
+                    if (availableEnvVars.length > 0) {
+                        envVarsSection += "You can ONLY use these variables (access via env.VARIABLE_NAME). DO NOT invent variables that are not in this list.\n\n";
+                        availableEnvVars.forEach(v => {
+                            envVarsSection += `- env.${v.name} : ${v.description}\n`;
+                        });
+                        envVarsSection += "\n";
+                    } else {
+                        envVarsSection += "No environment variables are currently configured. Use generic names like env.API_URL or env.API_KEY if needed, but prefer to configure specific variables.\n\n";
+                    }
+                    
+                    // AGENT MODE: JavaScript agent function
+                    systemInstruction = "You are an expert JavaScript developer specialized in creating automated agents for WebSuite CMS.\n\n" +
+                        "CRITICAL ARCHITECTURE: AGENT SYSTEM\n" +
+                        "Agents are JavaScript functions that run automatically via CronJob or manually from the admin interface.\n\n" +
+                        
+                        "MANDATORY REQUIREMENTS:\n" +
+                        "1. **API Endpoint Format**: MUST export onRequestPost(context) and/or onRequestGet(context)\n" +
+                        "2. **Imports**: MUST import jsonResponse and errorResponse from '../../../shared/utils.js'\n" +
+                        "3. **Context Parameter**: The context object contains { env, request, params } - environment variables via env\n" +
+                        "4. **Return Format**: MUST use jsonResponse() or errorResponse() helpers\n" +
+                        "5. **Environment Variables**: Access variables EXCLUSIVELY via context.env (e.g., env.GITHUB_TOKEN, env.ADMIN_PASSWORD)\n" +
+                        "6. **Error Handling**: MUST use try/catch and return errorResponse() on errors\n" +
+                        "7. **No File System**: Agents CANNOT access file system, only environment variables\n" +
+                        "8. **No External APIs without env**: Use env variables for API keys, tokens, etc.\n\n" +
+                        
+                        "CRITICAL: RSS FEEDS AND CONTENT API ROUTES\n" +
+                        "The system provides INTERNAL API routes that aggregate content from RSS feeds:\n" +
+                        "- Blog articles: Use fetch('/api/posts') - DO NOT use env.BLOG_FEED_URL directly\n" +
+                        "- YouTube videos: Use fetch('/api/videos') - DO NOT use env.YOUTUBE_FEED_URL directly\n" +
+                        "- Podcasts: Use fetch('/api/podcasts') - DO NOT use env.PODCAST_FEED_URL directly\n" +
+                        "- Events: Use fetch('/api/events') - DO NOT use env.EVENTS_FEED_URL directly\n\n" +
+                        "These RSS feed URLs (BLOG_FEED_URL, YOUTUBE_FEED_URL, PODCAST_FEED_URL, EVENTS_FEED_URL) are configured by the admin and used by the system internally.\n" +
+                        "Agents MUST use the internal API routes (/api/posts, /api/videos, /api/podcasts, /api/events) to access content.\n" +
+                        "Example: const posts = await fetch('/api/posts').then(r => r.json());\n\n" +
+                        
+                        envVarsSection +
+                        
+                        "EXAMPLE STRUCTURE:\n" +
+                        "```javascript\n" +
+                        "/**\n" +
+                        " * Agent Description\n" +
+                        " * Route: /api/agents/[id]/execute (POST ou GET)\n" +
+                        " * Schedule: 0 9 * * * (daily at 9 AM)\n" +
+                        " */\n\n" +
+                        "import { jsonResponse, errorResponse } from '../../../shared/utils.js';\n\n" +
+                        "export async function onRequestPost(context) {\n" +
+                        "  return handleAgent(context);\n" +
+                        "}\n\n" +
+                        "export async function onRequestGet(context) {\n" +
+                        "  return handleAgent(context);\n" +
+                        "}\n\n" +
+                        "async function handleAgent(context) {\n" +
+                        "  const { env } = context;\n" +
+                        "  \n" +
+                        "  try {\n" +
+                        "    // Your logic here\n" +
+                        "    // Access env variables: const apiKey = env.YOUR_VARIABLE_NAME;\n" +
+                        "    // Always check if variables exist: if (!env.REQUIRED_VAR) return errorResponse('Missing required env var', 400);\n" +
+                        "    // Fetch content from internal API routes:\n" +
+                        "    // const posts = await fetch('/api/posts').then(r => r.json());\n" +
+                        "    // const videos = await fetch('/api/videos').then(r => r.json());\n" +
+                        "    // const podcasts = await fetch('/api/podcasts').then(r => r.json());\n" +
+                        "    // const events = await fetch('/api/events').then(r => r.json());\n" +
+                        "    \n" +
+                        "    const result = {\n" +
+                        "      success: true,\n" +
+                        "      message: \"Agent executed successfully\",\n" +
+                        "      timestamp: new Date().toISOString(),\n" +
+                        "      data: { /* optional result data */ }\n" +
+                        "    };\n" +
+                        "    \n" +
+                        "    return jsonResponse(result);\n" +
+                        "  } catch (error) {\n" +
+                        "    return errorResponse(\`Erreur: \${error.message}\`, 500);\n" +
+                        "  }\n" +
+                        "}\n" +
+                        "```\n\n" +
+                        
+                        "COMMON USE CASES:\n" +
+                        "- Fetch content from internal API routes: fetch('/api/posts'), fetch('/api/videos'), fetch('/api/podcasts'), fetch('/api/events')\n" +
+                        "- Fetch data from external APIs using env variables for authentication\n" +
+                        "- Process and transform data\n" +
+                        "- Send notifications via webhooks (using env variables for URLs/keys)\n" +
+                        "- Aggregate data from multiple sources\n" +
+                        "- Schedule automated tasks\n\n" +
+                        
+                        "GOOGLE SERVICES VIA APPS SCRIPT:\n" +
+                        "Each Google service (Gmail, Drive, Docs, Sheets, Calendar, Meet, Forms) requires its own Apps Script URL:\n" +
+                        "- CRITICAL: Google Apps Script Web Apps require 'redirect: follow' mode for POST requests\n" +
+                        "- The URL must end with '/exec' (not '/dev')\n" +
+                        "- Each service has its own dedicated variable (no fallback)\n\n" +
+                        
+                        "1. GMAIL - Send emails:\n" +
+                        "  if (!env.APPSCRIPT_GMAIL_URL) throw new Error('APPSCRIPT_GMAIL_URL is required for Gmail');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_GMAIL_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'send',\n" +
+                        "      to: 'recipient@example.com',\n" +
+                        "      subject: 'Email Subject',\n" +
+                        "      body: 'Email body content'\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "2. GOOGLE DRIVE - Upload/download files:\n" +
+                        "  if (!env.APPSCRIPT_DRIVE_URL) throw new Error('APPSCRIPT_DRIVE_URL is required for Google Drive');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_DRIVE_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'upload',\n" +
+                        "      fileName: 'document.pdf',\n" +
+                        "      fileContent: base64EncodedContent\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "3. GOOGLE DOCS - Create/edit documents:\n" +
+                        "  if (!env.APPSCRIPT_DOCS_URL) throw new Error('APPSCRIPT_DOCS_URL is required for Google Docs');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_DOCS_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'create',\n" +
+                        "      title: 'Document Title',\n" +
+                        "      content: 'Document content'\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "4. GOOGLE SHEETS - Read/write spreadsheet data:\n" +
+                        "  if (!env.APPSCRIPT_SHEETS_URL) throw new Error('APPSCRIPT_SHEETS_URL is required for Google Sheets');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_SHEETS_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'write',\n" +
+                        "      spreadsheetId: 'spreadsheet_id',\n" +
+                        "      range: 'A1:B10',\n" +
+                        "      values: [['Col1', 'Col2'], ['Data1', 'Data2']]\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "5. GOOGLE CALENDAR - Create/manage events:\n" +
+                        "  if (!env.APPSCRIPT_CALENDAR_URL) throw new Error('APPSCRIPT_CALENDAR_URL is required for Google Calendar');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_CALENDAR_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'create',\n" +
+                        "      title: 'Event Title',\n" +
+                        "      startTime: '2024-01-15T10:00:00',\n" +
+                        "      endTime: '2024-01-15T11:00:00'\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "6. GOOGLE MEET - Create meetings:\n" +
+                        "  if (!env.APPSCRIPT_MEET_URL) throw new Error('APPSCRIPT_MEET_URL is required for Google Meet');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_MEET_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'create',\n" +
+                        "      title: 'Meeting Title',\n" +
+                        "      startTime: '2024-01-15T10:00:00'\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "7. GOOGLE FORMS - Create/manage forms:\n" +
+                        "  if (!env.APPSCRIPT_FORMS_URL) throw new Error('APPSCRIPT_FORMS_URL is required for Google Forms');\n" +
+                        "  const response = await fetch(env.APPSCRIPT_FORMS_URL, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    redirect: 'follow',\n" +
+                        "    body: JSON.stringify({\n" +
+                        "      action: 'create',\n" +
+                        "      title: 'Form Title',\n" +
+                        "      questions: [...]\n" +
+                        "    })\n" +
+                        "  });\n\n" +
+                        
+                        "ERROR HANDLING (for all Google Apps Scripts):\n" +
+                        "  const contentType = response.headers.get('content-type');\n" +
+                        "  if (!contentType || !contentType.includes('application/json')) {\n" +
+                        "    const text = await response.text();\n" +
+                        "    throw new Error(`Google Apps Script returned HTML instead of JSON. This usually means the script is not deployed correctly. Response: ${text.substring(0, 200)}`);\n" +
+                        "  }\n" +
+                        "  const result = await response.json();\n" +
+                        "  if (result.status !== 'success') throw new Error(`Operation failed: ${result.message || 'Unknown error'}`);\n\n" +
+                        
+                        "GOOGLE AI / GEMINI API:\n" +
+                        "If the agent needs to use Google Gemini AI API (via env.GOOGLE_AI_KEY):\n" +
+                        "- CRITICAL: Use 'gemini-2.5-flash' (same model as the IDE uses - NEVER use 'gemini-pro' or 'gemini-1.5-flash' which are deprecated)\n" +
+                        "- Correct endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent\n" +
+                        "- This is the SAME model used by the IDE for code generation, ensuring consistency\n" +
+                        "- Example usage:\n" +
+                        "  const apiKey = env.GOOGLE_AI_KEY;\n" +
+                        "  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;\n" +
+                        "  const response = await fetch(url, {\n" +
+                        "    method: 'POST',\n" +
+                        "    headers: { 'Content-Type': 'application/json' },\n" +
+                        "    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })\n" +
+                        "  });\n" +
+                        "  const data = await response.json();\n" +
+                        "  const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';\n\n" +
+                        
+                        "SECURITY RULES:\n" +
+                        "- NEVER hardcode API keys, tokens, or secrets\n" +
+                        "- ALWAYS use env variables for sensitive data\n" +
+                        "- Validate inputs before processing\n" +
+                        "- Handle errors gracefully\n\n" +
+                        
+                        "Generate ONLY valid JavaScript code. Do not include markdown backticks or explanations.";
+                    
+                    codeLanguage = "javascript";
+                    codeBlockType = "```javascript";
+                } else {
+                    // HTMX MODE: HTML templates
+                    systemInstruction = "You are an expert web developer specialized in creating dynamic themes for StackPages CMS.\n\n" +
+                    "IMPORTANT ARCHITECTURE: 'SUPER TEMPLATE'\n" +
+                    "StackPages uses a unique 'Super Template' system where the backend (Cloudflare Worker) handles Server-Side Rendering (SSR) using standard HTML <template> tags.\n\n" +
+
+                    "CRITICAL RULES:\n" +
+                    "1. **NO Client-Side Rendering**: Do NOT write JavaScript to fetch JSON and build HTML strings. The backend does this for you.\n" +
+                    "2. **Use <template> Tags**: You MUST define the following templates in your HTML:\n" +
+                    "   - <template id='tpl-home'>: The default homepage content.\n" +
+                    "   - <template id='tpl-blog-card'>: HTML structure for a single blog post card.\n" +
+                    "   - <template id='tpl-video-card'>: HTML structure for a single video card.\n" +
+                    "   - <template id='tpl-post-detail'>: Layout for viewing a full blog post.\n" +
+                    "   - <template id='tpl-video-detail'>: Layout for viewing a full video.\n" +
+                    "3. **Use HTMX**: Use HTMX attributes for navigation and dynamic loading.\n" +
+                    "   - <a href='/publications' hx-get='/publications' hx-target='#main-content' hx-push-url='true'>...</a>\n" +
+                    "   - <div hx-get='/api/posts' hx-trigger='load' hx-target='#publications-container'></div>\n" +
+                    "4. **Tailwind CSS**: Use Tailwind CSS for all styling.\n\n" +
+
+                    "TEMPLATE VARIABLES:\n" +
+                    "Inside your <template> tags, use these placeholders which the backend will replace:\n" +
+                    "- Blog Card: {{title}}, {{image}}, {{description}}, {{date}}, {{slug}}, {{author}}\n" +
+                    "- Video Card: {{title}}, {{thumbnail}}, {{date}}, {{link}}\n" +
+                    "- Post Detail: {{title}}, {{image}}, {{content}}, {{date}}, {{author}}\n" +
+                    "- Video Detail: {{title}}, {{embedUrl}}, {{description}}, {{published}}, {{link}}\n\n" +
+
+                    "EXAMPLE STRUCTURE:\n" +
+                    "```html\n" +
+                    "<body>\n" +
+                    "  <main id='main-content'>\n" +
+                    "    <!-- Content will be swapped here -->\n" +
+                    "  </main>\n\n" +
+                    "  <template id='tpl-blog-card'>\n" +
+                    "    <article class='card'>\n" +
+                    "      <img src='{{image}}' alt='{{title}}'>\n" +
+                    "      <h3><a href='/post/{{slug}}' hx-get='/post/{{slug}}' hx-target='#main-content' hx-push-url='true'>{{title}}</a></h3>\n" +
+                    "    </article>\n" +
+                    "  </template>\n" +
+                    "</body>\n" +
+                    "```\n\n" +
+                    "Generate ONLY valid HTML code. Do not include markdown backticks or explanations.";
+
+                    codeLanguage = "html";
+                    codeBlockType = "```html";
+                }
+
+                let fullPrompt = "";
+
+                if (currentCode) {
+                    // Iterative Mode: Modify existing code
+                    const codeBlock = codeBlockType + "\n" + currentCode + "\n```";
+                    fullPrompt = systemInstruction +
+                        "\n\nCURRENT CODE:\n" + codeBlock + "\n\n" +
+                        "USER REQUEST (Modify the code above):\n" + prompt +
+                        "\n\nINSTRUCTION: Return the FULLY UPDATED " + codeLanguage.toUpperCase() + " code based on the user request. Do not omit any parts unless requested. Maintain the existing structure and logic where possible.";
+                } else {
+                    // Generation Mode: Create from scratch
+                    fullPrompt = systemInstruction + "\n\nUser Request: " + prompt;
+                }
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: fullPrompt
+                            }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'Erreur lors de la communication avec Gemini.');
+                }
+
+                // Extract generated text
+                let generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+                // Clean up markdown if present (support both html and javascript)
+                generatedText = generatedText.replace(/^```(html|javascript|js)\s*/i, '').replace(/```\s*$/i, '');
+
+                if (generatedText) {
+                    // Update editor
+                    if (monacoEditor) {
+                        monacoEditor.setValue(generatedText);
+                    }
+                    closePromptModal();
+
+                    // Show success notification (optional)
+                    // alert('Code généré avec succès !');
+                } else {
+                    throw new Error('Aucun code n\'a été généré.');
+                }
+
+            } catch (error) {
+                console.error('Gemini Error:', error);
+                showError(error.message);
+            } finally {
+                // Reset UI
+                if (generateBtn) generateBtn.disabled = false;
+                if (btnText) btnText.textContent = 'Générer le code';
+                if (btnIcon) btnIcon.classList.remove('hidden');
+                if (loadingIcon) loadingIcon.classList.add('hidden');
+            }
+
+            function showError(message) {
+                if (errorDiv && errorMsg) {
+                    errorMsg.textContent = message;
+                    errorDiv.classList.remove('hidden');
+                } else {
+                    alert(message);
+                }
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // L'authentification est gérée automatiquement par core/admin.js
+
+            // Initialize Monaco Editor
+            initMonacoEditor('', 'html');
+
+            // Check URL parameters to determine mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const agentParam = urlParams.get('agent');
+            const newAgent = urlParams.get('new-agent');
+            const pageSlug = urlParams.get('page');
+
+            if (agentParam) {
+                // Loading existing agent
+                setTimeout(() => loadAgent(agentParam), 500);
+            } else if (newAgent === 'true') {
+                // New agent mode
+                switchMode('agent');
+                setTimeout(() => loadAgentTemplate(), 500);
+            } else if (pageSlug) {
+                // Loading existing page (HTMX mode)
+                setTimeout(() => loadPageBySlug(pageSlug), 500);
+            }
+        });
+
+        // Load page by slug from localStorage
+        function loadPageBySlug(slug) {
+            let pages = [];
+            try {
+                const stored = localStorage.getItem('stackpages_custom_pages');
+                if (stored) {
+                    pages = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Error loading pages:', e);
+                return;
+            }
+
+            const page = pages.find(p => p.slug === slug);
+
+            if (!page) {
+                console.error('Page not found:', slug);
+                return;
+            }
+
+            // Populate form fields
+            document.getElementById('page-title').value = page.title || '';
+            document.getElementById('page-slug').value = page.slug || '';
+            document.getElementById('page-meta-desc').value = page.metaDesc || '';
+            document.getElementById('page-meta-keywords').value = page.metaKeywords || '';
+            document.getElementById('page-thumbnail').value = page.thumbnail || '';
+
+            // Set Monaco content
+            if (monacoEditor && page.htmlContent) {
+                monacoEditor.setValue(page.htmlContent);
+            }
+
+            // Update status
+            const statusText = page.status === 'draft' ? 'Édition: ' + page.title + ' (Brouillon)' : 'Édition: ' + page.title;
+            document.getElementById('page-status').textContent = statusText;
+
+            // Update status badge
+            const statusBadge = document.getElementById('page-status-badge');
+            if (statusBadge && page.status === 'draft') {
+                statusBadge.innerHTML = '<i class="fas fa-circle text-orange-500 mr-1" style="font-size: 6px;"></i> Brouillon';
+                statusBadge.className = 'text-xs px-2 py-1 rounded bg-orange-900 text-orange-300';
+            } else if (statusBadge) {
+                statusBadge.innerHTML = '<i class="fas fa-circle text-green-500 mr-1" style="font-size: 6px;"></i> Publié';
+                statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-300';
+            }
+
+            // Update character count
+            updateCharacterCount();
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('preview-modal').classList.add('hidden');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '';
+        }
+
+    </script>
+    <!-- Charger core/admin.js pour la même logique d'authentification que le dashboard -->
+    <script src="/core/admin.js"></script>
+</body>
+
+</html>
