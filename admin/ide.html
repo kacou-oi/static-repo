@@ -570,7 +570,10 @@ async function handleAgent(context) {
 
             try {
                 // Sauvegarder en cache (comme HTMX preview)
-                const response = await fetch('/api/agents/preview', {
+                const apiUrl = (typeof buildApiUrl === 'function') 
+                    ? buildApiUrl('/api/agents/preview') 
+                    : '/api/agents/preview';
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -624,7 +627,10 @@ async function handleAgent(context) {
             }
 
             try {
-                const response = await fetch('/api/agents/deploy', {
+                const apiUrl = (typeof buildApiUrl === 'function') 
+                    ? buildApiUrl('/api/agents/deploy') 
+                    : '/api/agents/deploy';
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -679,7 +685,10 @@ async function handleAgent(context) {
             try {
                 // Étape 1: Sauvegarder l'agent en cache pour qu'il soit disponible pour l'exécution
                 console.log('[testAgent] Saving agent to cache first...');
-                const saveResponse = await fetch('/api/agents/preview', {
+                const previewApiUrl = (typeof buildApiUrl === 'function') 
+                    ? buildApiUrl('/api/agents/preview') 
+                    : '/api/agents/preview';
+                const saveResponse = await fetch(previewApiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -886,7 +895,10 @@ async function handleAgent(context) {
 
             try {
                 // Sauvegarder en cache pour prévisualisation
-                const response = await fetch('/api/frontend/template/preview', {
+                const apiUrl = (typeof buildApiUrl === 'function') 
+                    ? buildApiUrl('/api/frontend/template/preview') 
+                    : '/api/frontend/template/preview';
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1034,7 +1046,10 @@ async function handleAgent(context) {
                 // Vérifier si GitHub est configuré via l'API (variables d'environnement)
                 let deployToGitHub = false;
                 try {
-                    const configResponse = await fetch('/api/config', {
+                    const configApiUrl = (typeof buildApiUrl === 'function') 
+                        ? buildApiUrl('/api/config') 
+                        : '/api/config';
+                    const configResponse = await fetch(configApiUrl, {
                         headers: {
                             'X-Auth-Key': getAuthToken()
                         }
@@ -1050,7 +1065,10 @@ async function handleAgent(context) {
                     deployToGitHub = !!(ghConfig.owner && ghConfig.repo && ghConfig.token);
                 }
 
-                const response = await fetch('/api/frontend/template/deploy', {
+                const deployApiUrl = (typeof buildApiUrl === 'function') 
+                    ? buildApiUrl('/api/frontend/template/deploy') 
+                    : '/api/frontend/template/deploy';
+                const response = await fetch(deployApiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1217,7 +1235,10 @@ async function handleAgent(context) {
                 // Récupérer la liste des variables d'environnement disponibles avec leurs descriptions
                 let availableEnvVars = [];
                 try {
-                    const envResponse = await fetch('/api/env-vars', {
+                    const envApiUrl = (typeof buildApiUrl === 'function') 
+                        ? buildApiUrl('/api/env-vars') 
+                        : '/api/env-vars';
+                    const envResponse = await fetch(envApiUrl, {
                         headers: { 'X-Auth-Key': getAuthToken() }
                     });
                     if (envResponse.ok) {

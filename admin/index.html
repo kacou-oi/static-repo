@@ -136,8 +136,10 @@
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
 
             try {
-                // Always use relative path for "connect to self" behavior
-                const loginUrl = '/api/login';
+                // Use buildApiUrl() to call the remote Worker
+                const loginUrl = (typeof buildApiUrl === 'function') 
+                    ? buildApiUrl('/api/login') 
+                    : '/api/login';
 
                 const res = await fetch(loginUrl, {
                     method: 'POST',

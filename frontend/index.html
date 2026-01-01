@@ -411,8 +411,28 @@
                                 </div>
                             </div>
                             <script>
+                                // Build API URL helper (loads from config.json)
+                                async function buildApiUrl(endpoint) {
+                                    try {
+                                        const configRes = await fetch('/config.json');
+                                        if (configRes.ok) {
+                                            const config = await configRes.json();
+                                            if (config.backendUrl) {
+                                                const cleanBase = config.backendUrl.replace(/\/$/, '');
+                                                const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+                                                return `${cleanBase}${cleanEndpoint}`;
+                                            }
+                                        }
+                                    } catch (e) {
+                                        console.warn('Could not load config.json, using relative path');
+                                    }
+                                    return endpoint;
+                                }
+                                
                                 // Load latest video and extract embed
-                                fetch('/api/videos?offset=0&limit=1')
+                                (async () => {
+                                    const apiUrl = await buildApiUrl('/api/videos?offset=0&limit=1');
+                                    fetch(apiUrl)
                                     .then(r => r.json())
                                     .then(data => {
                                         const videos = data.videos || data; // Handle both old and new format
@@ -438,6 +458,7 @@
                                         document.getElementById('hero-video-container').innerHTML =
                                             '<p class="text-gray-500 text-sm">Aucune vidéo disponible</p>';
                                     });
+                                })();
                             </script>
                         </div>
                     </div>

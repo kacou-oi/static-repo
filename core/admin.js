@@ -167,7 +167,7 @@ async function checkAuth() {
 
     // Optional: Verify with server if needed, but for now just trust existence + API 401s
     try {
-        const res = await fetch('/api/check-auth', { 
+        const res = await fetch(buildApiUrl('/api/check-auth'), { 
             headers: { 'X-Auth-Key': authKey }
         });
         const data = await res.json();
@@ -1255,11 +1255,16 @@ async function testApi(endpoint) {
     const output = document.getElementById('api-output');
     const title = document.getElementById('api-response-title');
 
-    if (title) title.textContent = `Réponse : ${endpoint}`;
+    // Use buildApiUrl() if endpoint starts with /api/
+    const apiUrl = (endpoint.startsWith('/api/') && typeof buildApiUrl === 'function')
+        ? buildApiUrl(endpoint)
+        : endpoint;
+
+    if (title) title.textContent = `Réponse : ${apiUrl}`;
     output.textContent = "Chargement...";
 
     try {
-        const res = await fetch(endpoint);
+        const res = await fetch(apiUrl);
         const data = await res.json();
         output.textContent = JSON.stringify(data, null, 2);
     } catch (e) {
@@ -1316,7 +1321,7 @@ async function checkAgentsConfig() {
 
     try {
         const authKey = localStorage.getItem('websuite_auth');
-        const raw = await fetch('/api/config', {
+        const raw = await fetch(buildApiUrl('/api/config'), {
             headers: { 'X-Auth-Key': authKey }
         });
         if (!raw.ok) {
