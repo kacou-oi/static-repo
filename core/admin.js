@@ -4,10 +4,48 @@
 // Mode simplifié : toutes les requêtes vont directement au worker local
 // La configuration (flux RSS, etc.) est gérée par les env vars du worker
 
+// Global config loaded from static config.json
+let globalConfig = {
+    backendUrl: null,
+    loaded: false
+};
+
+// Initialize from localStorage as fallback (in case config.json is not loaded yet)
+const storedUrl = localStorage.getItem('api_base_url');
+if (storedUrl) {
+    globalConfig.backendUrl = storedUrl;
+}
+
+// Load static config.json
+async function loadStaticConfig() {
+    try {
+        const response = await fetch('/config.json');
+        if (response.ok) {
+            const config = await response.json();
+            if (config.backendUrl) {
+                globalConfig.backendUrl = config.backendUrl;
+                // Sync with localStorage for backward compatibility
+                localStorage.setItem('api_base_url', config.backendUrl);
+            }
+            globalConfig.loaded = true;
+        }
+    } catch (e) {
+        console.warn('Could not load /config.json:', e);
+        globalConfig.loaded = true; // Mark as loaded even if failed (to avoid infinite retries)
+    }
+}
+
 // Helper function to build API URL (modeagnostique)
 // Rendre buildApiUrl accessible globalement pour le fallback
 window.buildApiUrl = function buildApiUrl(endpoint) {
-    const baseUrl = localStorage.getItem('api_base_url');
+    // Priorité 1: config.json (backendUrl) - si chargé
+    let baseUrl = globalConfig.backendUrl;
+    
+    // Priorité 2: localStorage (pour compatibilité ou si config.json pas encore chargé)
+    if (!baseUrl) {
+        baseUrl = localStorage.getItem('api_base_url');
+    }
+    
     // Si une URL de base est définie (worker distant), on l'utilise
     if (baseUrl) {
         // Enlever le slash final si présent dans baseUrl et le slash initial si présent dans endpoint pour éviter //
@@ -33,6 +71,7 @@ const appState = {
 // Init
 document.addEventListener('DOMContentLoaded', async () => {
     initDarkMode(); // Init dark mode
+    await loadStaticConfig(); // Load static config.json first to get backendUrl
     await checkAuth();
     await loadConfig(); // load config first
     await loadData();
